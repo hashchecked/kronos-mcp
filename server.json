@@ -1,0 +1,47 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.hashchecked/crypto-derivatives-mcp",
+  "title": "Kronos Crypto Data",
+  "description": "Crypto data MCP: 22 tools covering derivatives, forecasts, alerts, liquidations, GEX — 16 assets.",
+  "version": "0.6.0",
+  "websiteUrl": "https://kronossignals.com",
+  "repository": {
+    "url": "https://github.com/hashchecked/kronos-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "crypto-derivatives-mcp",
+      "version": "0.6.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "categories": [
+        "data",
+        "finance",
+        "crypto"
+      ],
+      "tags": [
+        "crypto",
+        "bitcoin",
+        "ethereum",
+        "solana",
+        "derivatives",
+        "funding-rate",
+        "open-interest",
+        "basis",
+        "liquidations",
+        "x402",
+        "pay-per-call",
+        "ml-forecast"
+      ]
+    }
+  }
+}

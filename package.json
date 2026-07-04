@@ -1,0 +1,67 @@
+{
+  "name": "crypto-derivatives-mcp",
+  "version": "0.6.0",
+  "description": "22 crypto data tools: derivatives, forecasts, alerts, liquidations, options IV, GEX, macro, digest, screeners — 16 assets",
+  "mcpName": "io.github.hashchecked/crypto-derivatives-mcp",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "crypto-derivatives-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "src",
+    "dist",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hashchecked/kronos-mcp.git"
+  },
+  "homepage": "https://kronossignals.com",
+  "scripts": {
+    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --format=esm --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\" --outfile=dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "x402",
+    "bitcoin",
+    "btc",
+    "forecast",
+    "eth",
+    "sol",
+    "signals",
+    "kronos",
+    "usdc",
+    "base",
+    "base-mainnet",
+    "micropayments",
+    "derivatives",
+    "funding-rate",
+    "open-interest",
+    "ohlc",
+    "volatility",
+    "fear-greed",
+    "screener"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@x402/evm": "^2.17.0",
+    "@x402/fetch": "^2.17.0",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.22.4",
+    "viem": "^2.53.1",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.0",
+    "typescript": "^5.6.0"
+  }
+}
