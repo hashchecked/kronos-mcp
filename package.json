@@ -1,27 +1,29 @@
 {
   "name": "crypto-derivatives-mcp",
-  "version": "0.6.0",
-  "description": "22 crypto data tools: derivatives, forecasts, alerts, liquidations, options IV, GEX, macro, digest, screeners — 16 assets",
+  "version": "0.6.1",
+  "description": "22 crypto data tools: derivatives, forecasts, alerts, liquidations, options IV, GEX, macro, digest, screeners — up to 17 assets",
   "mcpName": "io.github.hashchecked/crypto-derivatives-mcp",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "crypto-derivatives-mcp": "./dist/index.js"
+    "crypto-derivatives-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
-    "src",
+    "src/**/*.ts",
     "dist",
     "README.md"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hashchecked/kronos-mcp.git"
+    "url": "git+https://github.com/hashchecked/kronos-mcp.git"
   },
   "homepage": "https://kronossignals.com",
   "scripts": {
     "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --format=esm --banner:js=\"import{createRequire}from'module';const require=createRequire(import.meta.url);\" --outfile=dist/index.js",
     "typecheck": "tsc --noEmit",
+    "check:live": "node scripts/check-live-drift.mjs",
+    "prepublishOnly": "npm run build && npm run check:live",
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts"
   },

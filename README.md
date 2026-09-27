@@ -1,11 +1,11 @@
 # Kronos Crypto Data MCP Server
 
-**Real-time crypto market data for AI agents** — derivatives (funding / OI / basis), liquidations, options IV, GEX, CEX premium, multi-source price, realized volatility, market-regime detection, and TradFi macro across **16 assets**. An optional **ML price forecast** is available as a premium add-on.
+**Real-time crypto market data for AI agents** — derivatives (funding / OI / basis), liquidations, options IV, GEX, CEX premium, multi-source price, realized volatility, market-regime detection, and TradFi macro across up to **17 assets**. An optional **ML price forecast** is available as a premium add-on.
 
 **x402-native: no API key, no signup.** An autonomous agent discovers this server and pays per call in **USDC on Base** via the [x402](https://www.x402.org/) micropayment protocol. There is no dashboard, no account, no API-key provisioning — just point a funded wallet at it and call. That is the one thing incumbent crypto-data MCPs (CoinGecko / CoinMarketCap / CoinGlass) cannot do.
 
 - **Data-first.** 19 paid data tools covering derivatives, liquidations, options, macro, and screeners.
-- **Pay-per-call.** Prices from **$0.001** per call, settled on-chain in USDC — you pay only for what you use.
+- **Pay-per-call.** Prices from **$0.02** per call, settled on-chain in USDC — you pay only for what you use.
 - **Wallet-optional boot.** The free `get_sample` tool works with **no wallet at all**.
 
 ## Wallet-optional boot
@@ -42,40 +42,45 @@ That's it — no signup, no API key. The first paid call triggers an on-chain US
 | `get_funding_rate` | Perpetual funding rate + annualized rate. Positive = bullish lean, negative = bearish lean | $0.02 |
 | `get_open_interest` | Open interest and 1-hour OI change. Rising OI + rising price = strong trend | $0.02 |
 | `get_market_regime` | Market regime: squeeze / breakout / funding-extreme / OI-surge / normal | $0.02 |
-| `get_price` | Real-time spot price for an asset | $0.001 |
-| `get_snapshot` | Everything-in-one snapshot: funding, OI, basis, regime, and forecast | $0.04 |
-| `get_market_overview` | Funding rate + OI snapshot across all 16 assets at once | $0.02 |
-| `get_funding_extremes` | Screener: assets with the most extreme funding rates right now | $0.003 |
-| `get_fear_greed` | Current crypto Fear & Greed index score and classification | $0.001 |
-| `get_ohlc` | OHLCV candlestick data. Optional: interval (`1h`,`4h`,`1d`) and limit | $0.001 |
-| `get_volatility` | Realized volatility metrics for an asset | $0.01 |
+| `get_price` | Real-time spot price for an asset | $0.02 |
+| `get_snapshot` | Everything-in-one snapshot: funding, OI, basis, regime, and the ML forecast (`btc`/`eth`/`sol` only) | $0.08 |
+| `get_market_overview` | Funding rate + OI snapshot across all 17 assets at once | $0.02 |
+| `get_funding_extremes` | Screener: assets with the most extreme funding rates right now | $0.02 |
+| `get_fear_greed` | Current crypto Fear & Greed index score and classification | $0.03 |
+| `get_ohlc` | OHLCV candlestick data. Optional: interval (`1h`,`4h`,`1d`) and limit | $0.02 |
+| `get_volatility` | Realized volatility metrics for an asset | $0.02 |
 | `get_alerts` | Regime alerts for an asset: squeeze, breakout, funding-extreme, OI-surge, or normal | $0.02 |
-| `get_market_scan` | Market-wide screen across up to 16 assets ranked by signal strength and regime state. Optional `assets` filter | $0.04 |
-| `get_macro` | TradFi macro snapshot: VIX, DXY, 10Y yield, SPX, gold — plus BTC correlations | $0.001 |
-| `get_digest` | Structured market narrative: machine-readable digest of funding, OI, regime, and forecast signals | $0.02 |
-| `get_liquidations` | Liquidation cluster-map and recent OKX liquidation prints. Identifies high-density price levels | $0.003 |
+| `get_market_scan` | Market-wide screen across up to 17 assets ranked by signal strength and regime state. Optional `assets` filter | $0.04 |
+| `get_macro` | TradFi macro snapshot: VIX, DXY, 10Y yield, SPX, gold — plus BTC correlations | $0.02 |
+| `get_digest` | Structured market narrative: machine-readable digest of funding, OI, regime, and the ML forecast (`btc`/`eth`/`sol` only) | $0.02 |
+| `get_liquidations` | Liquidation cluster-map and recent OKX liquidation prints. Identifies high-density price levels | $0.02 |
 | `get_options_iv` | Options implied volatility, skew, and term-structure. **BTC and ETH only** | $0.03 |
 | `get_gex` | Gamma exposure (GEX) and max-pain price. **BTC and ETH only** | $0.04 |
 | `get_cex_premium` | Coinbase premium: spot price difference between Coinbase and global aggregated price | $0.02 |
 
 ### Forecast (premium add-on)
 
-A predictive signal layered on top of the data — **not financial advice.**
+An optional add-on on top of the data — **not financial advice.** Live per-asset accuracy is free at [kronossignals.com/api/stats](https://kronossignals.com/api/stats); check it before buying.
 
 | Tool | Description | Cost |
 |------|-------------|------|
-| `get_forecast` | Kronos price forecast at 1h, 4h, or 24h horizon. Full ML model for `btc`/`eth`/`sol`; beta composite model for `doge`/`xrp`/`bnb` | $0.01 (`btc`/`eth`/`sol`) · $0.001 beta (`doge`/`xrp`/`bnb`) |
-| `get_forecast_ledger` | Machine-readable resolved-forecast accuracy history. Optional: asset, horizon, limit | $0.001 |
+| `get_forecast` | Kronos price forecast at 1h, 4h, or 24h horizon. Kronos ML model for `btc`/`eth`/`sol`; `doge`/`bnb`/`near`/`ada` run it hourly, with a heuristic in between; `xrp` uses a composite model that has shown no directional edge | $0.05 |
+| `get_forecast_ledger` | Machine-readable resolved-forecast accuracy history. Optional: asset, horizon, limit | $0.02 |
 
 ### Free
 
 | Tool | Description | Cost |
 |------|-------------|------|
-| `get_sample` | Sample data — explore the response format without paying or funding a wallet | Free |
+| `get_sample` | A coarse up/down direction with a confidence bucket from the cached forecast — see the response format without paying or funding a wallet | Free |
 
-All asset-scoped tools (except `get_options_iv` and `get_gex`) accept `asset` from: `btc`, `eth`, `sol`, `bnb`, `xrp`, `doge`, `ada`, `avax`, `link`, `dot`, `ltc`, `trx`, `bch`, `atom`, `near`, `apt`.
+The `asset` each tool accepts:
 
-`get_options_iv` and `get_gex` accept `btc` or `eth` only. Forecasts are available only for `btc`/`eth`/`sol` (full ML) and `doge`/`xrp`/`bnb` (beta composite).
+- `get_derivatives`, `get_funding_rate`, `get_open_interest`, `get_market_regime`, `get_alerts`, `get_liquidations`: `btc`, `eth`, `sol`, `bnb`, `xrp`, `doge`, `ada`, `avax`, `link`, `dot`, `ltc`, `trx`, `bch`, `atom`, `near`, `apt`, `hype`
+- `get_price`, `get_snapshot`, `get_ohlc`, `get_volatility`, `get_digest`: `btc`, `eth`, `sol`, `bnb`, `xrp`, `doge`, `ada`, `avax`, `link`, `dot`, `ltc`, `trx`, `bch`, `atom`, `near`, `apt`
+- `get_cex_premium` (Coinbase-listed only): `btc`, `eth`, `sol`, `xrp`, `doge`, `ada`, `avax`, `link`, `dot`, `ltc`, `bch`, `atom`, `near`
+- `get_forecast`: `btc`, `eth`, `sol`, `doge`, `xrp`, `bnb`, `near`, `ada`
+- `get_options_iv`, `get_gex`: `btc`, `eth`
+- `get_sample`: `btc`, `eth`, `sol`
 
 ## Install
 
@@ -140,4 +145,4 @@ Use a dedicated wallet. Fund it with only as much USDC as you need.
 
 Never commit your private key to version control. The `.gitignore` excludes `.env` and `.env.*`. Use a dedicated wallet with a limited USDC balance. For production deployments, supply the key via a secrets manager.
 
-The forecast tools provide a **premium predictive signal, not financial advice.** No accuracy or performance is guaranteed; `get_forecast_ledger` exposes the raw resolved-forecast history so you can judge it yourself.
+The forecast tools are an optional add-on and **not financial advice.** No accuracy or performance is guaranteed; `get_forecast_ledger` exposes the raw resolved-forecast history so you can judge it yourself.

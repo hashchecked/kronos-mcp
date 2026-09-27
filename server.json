@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.hashchecked/crypto-derivatives-mcp",
   "title": "Kronos Crypto Data",
-  "description": "Crypto data MCP: 22 tools covering derivatives, forecasts, alerts, liquidations, GEX — 16 assets.",
-  "version": "0.6.0",
+  "description": "Crypto data MCP: 22 tools for derivatives, forecasts, alerts, liquidations, GEX — up to 17 assets.",
+  "version": "0.6.1",
   "websiteUrl": "https://kronossignals.com",
   "repository": {
     "url": "https://github.com/hashchecked/kronos-mcp",
@@ -14,7 +14,7 @@
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "crypto-derivatives-mcp",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"

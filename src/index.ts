@@ -15,24 +15,44 @@ const BASE_URL = (process.env.BASE_URL ?? "https://kronossignals.com").replace(
 // Base MAINNET. USDC 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 (6 decimals).
 const NETWORK = (process.env.NETWORK ?? "eip155:8453") as `${string}:${string}`;
 
-const ASSET = z
-  .enum([
-    "btc", "eth", "sol", "bnb", "xrp", "doge", "ada", "avax",
-    "link", "dot", "ltc", "trx", "bch", "atom", "near", "apt",
-  ])
-  .describe(
-    "Asset symbol: btc, eth, sol, bnb, xrp, doge, ada, avax, link, dot, ltc, trx, bch, atom, near, or apt"
-  );
+// Asset slugs each route accepts, as the live catalog lists them
+// (https://kronossignals.com/api/v1/catalog). scripts/check-live-drift.mjs
+// fails when these, the prices below or the README drift from it.
+const SPOT_ASSETS = [
+  "btc", "eth", "sol", "bnb", "xrp", "doge", "ada", "avax",
+  "link", "dot", "ltc", "trx", "bch", "atom", "near", "apt",
+] as const;
+// The perpetual-futures routes also cover hype, which has no spot market here.
+const PERP_ASSETS = [...SPOT_ASSETS, "hype"] as const;
+// The Coinbase premium needs a Coinbase listing.
+const COINBASE_ASSETS = [
+  "btc", "eth", "sol", "xrp", "doge", "ada", "avax",
+  "link", "dot", "ltc", "bch", "atom", "near",
+] as const;
+const FORECAST_ASSETS = ["btc", "eth", "sol", "doge", "xrp", "bnb", "near", "ada"] as const;
+const SAMPLE_ASSETS = ["btc", "eth", "sol"] as const;
+
+const ASSET = z.enum(SPOT_ASSETS).describe(`Asset symbol: ${SPOT_ASSETS.join(", ")}`);
+
+const ASSET_PERP = z.enum(PERP_ASSETS).describe(`Asset symbol: ${PERP_ASSETS.join(", ")}`);
+
+const ASSET_COINBASE = z
+  .enum(COINBASE_ASSETS)
+  .describe(`Asset symbol (Coinbase-listed only): ${COINBASE_ASSETS.join(", ")}`);
 
 const ASSET_BTC_ETH = z
   .enum(["btc", "eth"])
   .describe("Asset symbol: btc or eth (only BTC and ETH are supported by this endpoint)");
 
 const ASSET_FORECAST = z
-  .enum(["btc", "eth", "sol", "doge", "xrp", "bnb"])
+  .enum(FORECAST_ASSETS)
   .describe(
-    "Asset symbol for forecasts. Full Kronos ML ($0.01): btc, eth, sol. Beta composite ($0.001): doge, xrp, bnb. Other assets have no forecast endpoint."
+    `Asset symbol for forecasts: ${FORECAST_ASSETS.join(", ")}. Other assets have no forecast endpoint.`
   );
+
+const ASSET_SAMPLE = z
+  .enum(SAMPLE_ASSETS)
+  .describe(`Asset symbol: ${SAMPLE_ASSETS.join(", ")} (the only assets with a free sample)`);
 
 // ---------------------------------------------------------------------------
 // Lazy paid client — constructed only when a paid tool is actually invoked.
@@ -211,19 +231,19 @@ async function paidGetFiltered(url: string, label: string, keywords: string[]) {
 
 async function main() {
   process.stderr.write(
-    `[kronos-mcp] v0.6.0 | 22 tools | base=${BASE_URL}, network=${NETWORK} | wallet-optional boot enabled | waiting on stdio\n`
+    `[kronos-mcp] v0.6.1 | 22 tools | base=${BASE_URL}, network=${NETWORK} | wallet-optional boot enabled | waiting on stdio\n`
   );
 
   const server = new McpServer({
     name: "Kronos Crypto Data",
-    version: "0.6.0",
+    version: "0.6.1",
   });
 
   // ---- 1. get_derivatives: full real-time derivatives snapshot ---------------
   server.tool(
     "get_derivatives",
-    "Full real-time derivatives snapshot for an asset: funding rate, annualized funding, open interest, 1h OI change, basis, funding trend, and plain-English market read. Supports all 16 assets. $0.02 per call via x402.",
-    { asset: ASSET },
+    `Full real-time derivatives snapshot for an asset: funding rate, annualized funding, open interest, 1h OI change, basis, funding trend, and plain-English market read. Supports all ${PERP_ASSETS.length} assets. $0.02 per call via x402.`,
+    { asset: ASSET_PERP },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/signals/${asset}`, "derivatives");
     }
@@ -232,8 +252,8 @@ async function main() {
   // ---- 2. get_funding_rate: funding-focused view ----------------------------
   server.tool(
     "get_funding_rate",
-    "Real-time perpetual funding rate and annualized funding rate for an asset. Positive = longs pay shorts (bullish lean); negative = shorts pay longs (bearish lean). Supports all 16 assets. $0.02 per call via x402.",
-    { asset: ASSET },
+    `Real-time perpetual funding rate and annualized funding rate for an asset. Positive = longs pay shorts (bullish lean); negative = shorts pay longs (bearish lean). Supports all ${PERP_ASSETS.length} assets. $0.02 per call via x402.`,
+    { asset: ASSET_PERP },
     async ({ asset }) => {
       return paidGetFiltered(`${BASE_URL}/api/v1/signals/${asset}`, "funding_rate", [
         "funding",
@@ -247,8 +267,8 @@ async function main() {
   // ---- 3. get_open_interest: OI-focused view ---------------------------------
   server.tool(
     "get_open_interest",
-    "Real-time open interest and 1-hour OI change for a perpetual futures market. Rising OI + rising price = strong trend. Supports all 16 assets. $0.02 per call via x402.",
-    { asset: ASSET },
+    `Real-time open interest and 1-hour OI change for a perpetual futures market. Rising OI + rising price = strong trend. Supports all ${PERP_ASSETS.length} assets. $0.02 per call via x402.`,
+    { asset: ASSET_PERP },
     async ({ asset }) => {
       return paidGetFiltered(`${BASE_URL}/api/v1/signals/${asset}`, "open_interest", [
         "open_interest",
@@ -262,8 +282,8 @@ async function main() {
   // ---- 4. get_market_regime: regime classification -------------------------
   server.tool(
     "get_market_regime",
-    "Current market regime classification: squeeze, breakout, funding-extreme, OI-surge, or normal. Use to detect high-volatility setups before trading. Supports all 16 assets. $0.02 per call via x402.",
-    { asset: ASSET },
+    `Current market regime classification: squeeze, breakout, funding-extreme, OI-surge, or normal. Use to detect high-volatility setups before trading. Supports all ${PERP_ASSETS.length} assets. $0.02 per call via x402.`,
+    { asset: ASSET_PERP },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/alerts/${asset}`, "market_regime");
     }
@@ -272,7 +292,7 @@ async function main() {
   // ---- 5. get_forecast: Kronos ML price forecast ---------------------------
   server.tool(
     "get_forecast",
-    "Kronos price forecast for an asset. Horizon: 1h, 4h, or 24h. Forecasts are available ONLY for: btc, eth, sol (full Kronos ML, $0.01 per call) and doge, xrp, bnb (beta composite model, $0.001 per call). Any other asset has no forecast endpoint. Premium predictive signal — not financial advice. Paid via x402.",
+    `Kronos price forecast for an asset: up-probability, expected close and price range at a 1h, 4h, or 24h horizon. Available ONLY for: ${FORECAST_ASSETS.join(", ")}. btc, eth and sol use the Kronos ML model; doge, bnb, near and ada run it hourly, with a heuristic in between (the response's model_type says which); xrp uses a composite model that has shown no directional edge. Live per-asset accuracy is free at https://kronossignals.com/api/stats. Optional add-on — not financial advice. $0.05 per call via x402.`,
     {
       asset: ASSET_FORECAST,
       horizon: z
@@ -289,8 +309,8 @@ async function main() {
   // ---- 6. get_sample: free teaser data (no payment) ------------------------
   server.tool(
     "get_sample",
-    "Free sample data for an asset — no payment required. Use to explore the data format before committing to paid calls. Supports all 16 assets.",
-    { asset: ASSET },
+    `Free sample for ${SAMPLE_ASSETS.join(", ")}: a coarse up/down direction with a confidence bucket, from the cached Kronos forecast. No payment or wallet needed. Use it to see the response format before paying.`,
+    { asset: ASSET_SAMPLE },
     async ({ asset }) => {
       try {
         const url = `${BASE_URL}/api/v1/sample/${asset}`;
@@ -329,7 +349,7 @@ async function main() {
   // ---- 7. get_price: real-time spot price ----------------------------------
   server.tool(
     "get_price",
-    "Get real-time spot price for a crypto asset. Supports btc/eth/sol/bnb/xrp/doge/ada/avax/link/dot/ltc/trx/bch/atom/near/apt. Cost: $0.001.",
+    `Get real-time spot price for a crypto asset. Supports ${SPOT_ASSETS.join("/")}. Cost: $0.02.`,
     { asset: ASSET },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/price/${asset}`, "price");
@@ -339,7 +359,7 @@ async function main() {
   // ---- 8. get_snapshot: comprehensive market snapshot ----------------------
   server.tool(
     "get_snapshot",
-    "Get a comprehensive everything-in-one market snapshot for an asset: funding rate, open interest, basis, market regime, and (where available) forecast. Derivatives data covers all 16 assets; the forecast component is only included for btc, eth, sol, doge, xrp, and bnb. Cost: $0.04.",
+    `Get a comprehensive everything-in-one market snapshot for an asset: funding rate, open interest, basis, market regime, and (where available) forecast. Supports all ${SPOT_ASSETS.length} assets; the ML forecast component is only included for btc, eth, and sol. Cost: $0.08.`,
     { asset: ASSET },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/snapshot/${asset}`, "snapshot");
@@ -349,7 +369,7 @@ async function main() {
   // ---- 9. get_market_overview: all-assets overview -------------------------
   server.tool(
     "get_market_overview",
-    "Get a funding rate and open interest snapshot across all 16 tracked crypto assets at once. Cost: $0.02.",
+    `Get a funding rate and open interest snapshot across all ${PERP_ASSETS.length} tracked crypto assets at once. Cost: $0.02.`,
     {},
     async () => {
       return paidGet(`${BASE_URL}/api/v1/overview`, "market_overview");
@@ -359,7 +379,7 @@ async function main() {
   // ---- 10. get_funding_extremes: screener ----------------------------------
   server.tool(
     "get_funding_extremes",
-    "Screener: returns assets with the most extreme funding rates right now — useful for spotting crowded longs/shorts. Cost: $0.003.",
+    "Screener: returns assets with the most extreme funding rates right now — useful for spotting crowded longs/shorts. Cost: $0.02.",
     {},
     async () => {
       return paidGet(`${BASE_URL}/api/v1/funding-extremes`, "funding_extremes");
@@ -369,7 +389,7 @@ async function main() {
   // ---- 11. get_fear_greed: Fear & Greed index ------------------------------
   server.tool(
     "get_fear_greed",
-    "Get the current crypto Fear & Greed index score and classification. Cost: $0.001.",
+    "Get the current crypto Fear & Greed index score and classification. Cost: $0.03.",
     {},
     async () => {
       return paidGet(`${BASE_URL}/api/v1/fear-greed`, "fear_greed");
@@ -379,7 +399,7 @@ async function main() {
   // ---- 12. get_ohlc: OHLCV candlestick data --------------------------------
   server.tool(
     "get_ohlc",
-    "Get recent OHLCV candlestick data for an asset. Optional params: interval (e.g. '1h','4h','1d'), limit (number of candles). Supports all 16 assets. Cost: $0.001.",
+    `Get recent OHLCV candlestick data for an asset. Optional params: interval (e.g. '1h','4h','1d'), limit (number of candles). Supports all ${SPOT_ASSETS.length} assets. Cost: $0.02.`,
     {
       asset: ASSET,
       interval: z
@@ -405,7 +425,7 @@ async function main() {
   // ---- 13. get_volatility: realized volatility metrics ---------------------
   server.tool(
     "get_volatility",
-    "Get realized volatility metrics for an asset. Supports all 16 assets. Cost: $0.01.",
+    `Get realized volatility metrics for an asset. Supports all ${SPOT_ASSETS.length} assets. Cost: $0.02.`,
     { asset: ASSET },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/volatility/${asset}`, "volatility");
@@ -415,22 +435,22 @@ async function main() {
   // ---- 14. get_alerts: regime alerts per asset -----------------------------
   server.tool(
     "get_alerts",
-    "Regime alerts for an asset: squeeze, breakout, funding-extreme, OI-surge, or normal. Returns current alert state with supporting data. Supports all 16 assets. $0.02 per call via x402.",
-    { asset: ASSET },
+    `Regime alerts for an asset: squeeze, breakout, funding-extreme, OI-surge, or normal. Returns current alert state with supporting data. Supports all ${PERP_ASSETS.length} assets. $0.02 per call via x402.`,
+    { asset: ASSET_PERP },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/alerts/${asset}`, "alerts");
     }
   );
 
-  // ---- 15. get_market_scan: market-wide 16-asset screen --------------------
+  // ---- 15. get_market_scan: market-wide screen -----------------------------
   server.tool(
     "get_market_scan",
-    "Market-wide screen across up to 16 assets: ranks by signal strength, funding extremes, and regime state. Optional comma-separated `assets` filter. $0.04 per call via x402.",
+    `Market-wide screen across up to ${PERP_ASSETS.length} assets: ranks by signal strength, funding extremes, and regime state. Optional comma-separated \`assets\` filter. $0.04 per call via x402.`,
     {
       assets: z
         .string()
         .optional()
-        .describe("Comma-separated asset symbols to filter, e.g. 'btc,eth,sol'. Omit for all 16."),
+        .describe(`Comma-separated asset symbols to filter, e.g. 'btc,eth,sol'. Omit for all ${PERP_ASSETS.length}.`),
     },
     async ({ assets }) => {
       const params = new URLSearchParams();
@@ -443,7 +463,7 @@ async function main() {
   // ---- 16. get_macro: TradFi macro indicators + BTC correlations ----------
   server.tool(
     "get_macro",
-    "TradFi macro snapshot: VIX, DXY, 10Y yield, SPX, and gold — plus BTC correlations to each indicator. No params. $0.001 per call via x402.",
+    "TradFi macro snapshot: VIX, DXY, 10Y yield, SPX, and gold — plus BTC correlations to each indicator. No params. $0.02 per call via x402.",
     {},
     async () => {
       return paidGet(`${BASE_URL}/api/v1/macro`, "macro");
@@ -453,7 +473,7 @@ async function main() {
   // ---- 17. get_digest: structured market narrative -------------------------
   server.tool(
     "get_digest",
-    "Structured market narrative for an asset: machine-readable digest of funding, OI, regime, and (where available) forecast signals. Derivatives data covers all 16 assets; forecast signals are only included for btc, eth, sol, doge, xrp, and bnb. $0.02 per call via x402.",
+    `Structured market narrative for an asset: machine-readable digest of funding, OI, regime, and (where available) the ML forecast. Supports all ${SPOT_ASSETS.length} assets; the ML forecast is only included for btc, eth, and sol. $0.02 per call via x402.`,
     { asset: ASSET },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/digest/${asset}`, "digest");
@@ -463,8 +483,8 @@ async function main() {
   // ---- 18. get_liquidations: liquidation cluster-map + OKX prints ----------
   server.tool(
     "get_liquidations",
-    "Liquidation cluster-map and recent OKX liquidation prints for an asset. Identifies price levels with high liquidation density. Supports all 16 assets. $0.003 per call via x402.",
-    { asset: ASSET },
+    `Liquidation cluster-map and recent OKX liquidation prints for an asset. Identifies price levels with high liquidation density. Supports all ${PERP_ASSETS.length} assets. $0.02 per call via x402.`,
+    { asset: ASSET_PERP },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/liquidations/${asset}`, "liquidations");
     }
@@ -493,8 +513,8 @@ async function main() {
   // ---- 21. get_cex_premium: Coinbase premium -------------------------------
   server.tool(
     "get_cex_premium",
-    "Coinbase premium for an asset: spot price difference between Coinbase and the global aggregated price. Positive = US buyers paying up. Supports all 16 assets. $0.02 per call via x402.",
-    { asset: ASSET },
+    `Coinbase premium for an asset: spot price difference between Coinbase and the global aggregated price. Positive = US buyers paying up. Coinbase-listed assets only: ${COINBASE_ASSETS.join(", ")}. $0.02 per call via x402.`,
+    { asset: ASSET_COINBASE },
     async ({ asset }) => {
       return paidGet(`${BASE_URL}/api/v1/cex-premium/${asset}`, "cex_premium");
     }
@@ -503,7 +523,7 @@ async function main() {
   // ---- 22. get_forecast_ledger: resolved-forecast accuracy history ---------
   server.tool(
     "get_forecast_ledger",
-    "Machine-readable resolved-forecast accuracy history. Optional filters: asset, horizon (1h/4h/24h), limit (number of records). $0.001 per call via x402.",
+    "Machine-readable resolved-forecast accuracy history. Optional filters: asset, horizon (1h/4h/24h), limit (number of records). $0.02 per call via x402.",
     {
       asset: z.string().optional().describe("Asset symbol to filter, e.g. 'btc'"),
       horizon: z.string().optional().describe("Forecast horizon to filter, e.g. '1h', '4h', '24h'"),
